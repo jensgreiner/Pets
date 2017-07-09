@@ -84,6 +84,14 @@ public class PetProvider extends ContentProvider {
             default:
                 throw new IllegalArgumentException("Cannot query unknown URI " + uri);
         }
+
+        // Set notification URI on the cursor,
+        // so we know what content URI the cursor was created for.
+        // If the data at this URI changes, then we know we need to update the cursor.
+        if (getContext() != null) {
+            cursor.setNotificationUri(getContext().getContentResolver(), uri);
+        }
+
         return cursor;
     }
 
@@ -137,6 +145,11 @@ public class PetProvider extends ContentProvider {
         if (id == -1) {
             Log.e(LOG_TAG, "Failed to insert row for" + uri);
             return null;
+        }
+
+        // Notify all listeners that the data has changed for the pet content URI
+        if (getContext() != null) {
+            getContext().getContentResolver().notifyChange(uri, null);
         }
 
         // Once we know the ID of the new row in the table,
@@ -208,7 +221,16 @@ public class PetProvider extends ContentProvider {
 
         SQLiteDatabase database = mDbHelper.getWritableDatabase();
 
-        return database.update(PetEntry.TABLE_NAME, contentValues, selection, selectionArgs);
+        int numberOfRows = database.update(PetEntry.TABLE_NAME, contentValues, selection, selectionArgs);
+
+        if (numberOfRows > 0) {
+            // Notify all listeners that the data has changed for the pet content URI
+            if (getContext() != null) {
+                getContext().getContentResolver().notifyChange(uri, null);
+            }
+        }
+
+        return numberOfRows;
     }
 
     /**
@@ -216,7 +238,7 @@ public class PetProvider extends ContentProvider {
      */
     @Override
     public int delete(@NonNull Uri uri, String selection, String[] selectionArgs) {
-        // Get writeable database
+        // Get writable database
         SQLiteDatabase database = mDbHelper.getWritableDatabase();
 
         final int match = sUriMatcher.match(uri);
@@ -228,7 +250,14 @@ public class PetProvider extends ContentProvider {
                 // Delete a single row given by the ID in the URI
                 selection = PetEntry._ID + "=?";
                 selectionArgs = new String[]{String.valueOf(ContentUris.parseId(uri))};
-                return database.delete(PetEntry.TABLE_NAME, selection, selectionArgs);
+                int numberOfRows = database.delete(PetEntry.TABLE_NAME, selection, selectionArgs);
+                if (numberOfRows > 0) {
+                    // Notify all listeners that the data has changed for the pet content URI
+                    if (getContext() != null) {
+                        getContext().getContentResolver().notifyChange(uri, null);
+                    }
+                }
+                return numberOfRows;
             default:
                 throw new IllegalArgumentException("Deletion is not supported for " + uri);
         }
