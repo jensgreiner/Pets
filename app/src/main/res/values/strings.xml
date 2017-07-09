@@ -61,4 +61,5 @@
     <string name="toast_pet_Saved">Pet saved</string>
     <string name="toast_error_pet_saved">Error with saving pet</string>
     <string name="log_new_row_id">New row ID</string>
+    <string name="log_failed_insert_row_for_uri">Failed to insert row for</string>
 </resources>
