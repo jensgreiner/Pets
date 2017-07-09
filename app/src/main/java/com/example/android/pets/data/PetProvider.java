@@ -23,6 +23,7 @@ public class PetProvider extends ContentProvider {
      * Tag for the log messages
      */
     public static final String LOG_TAG = PetProvider.class.getSimpleName();
+
     private static final int PETS = 100;
     private static final int PET_ID = 101;
     private static final UriMatcher sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
