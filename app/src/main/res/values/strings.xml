@@ -65,4 +65,8 @@
     <string name="exception_pet_name_null_or_empty">Pet requires a name</string>
     <string name="exception_pet_gender_is_not_valid">Gender is not valid</string>
     <string name="exception_pet_weight_is_negative">Weight is negative</string>
+    <!-- Title text for the empty view, which describes the empty dog house image [CHAR LIMIT=50] -->
+    <string name="empty_view_title_text">It\'s a bit lonely here...</string>
+    <!-- Subtitle text for the empty view that prompts the user to add a pet [CHAR LIMIT=50] -->
+    <string name="empty_view_subtitle_text">Get started by adding a pet</string>
 </resources>
