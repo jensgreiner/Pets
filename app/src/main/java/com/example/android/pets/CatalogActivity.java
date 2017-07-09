@@ -18,7 +18,7 @@ package com.example.android.pets;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
@@ -29,15 +29,12 @@ import android.view.View;
 import android.widget.TextView;
 
 import com.example.android.pets.data.PetContract.PetEntry;
-import com.example.android.pets.data.PetDbHelper;
 
 /**
  * Displays list of pets that were entered and stored in the app.
  */
 public class CatalogActivity extends AppCompatActivity {
     private static final String LOG_TAG = CatalogActivity.class.getSimpleName();
-
-    private PetDbHelper mDbHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,9 +51,6 @@ public class CatalogActivity extends AppCompatActivity {
             }
         });
 
-        // To access our database, we instantiate our subclass of SQLiteOpenHelper
-        // and pass the context, which is the current activity.
-        mDbHelper = new PetDbHelper(this);
     }
 
     @Override
@@ -71,9 +65,6 @@ public class CatalogActivity extends AppCompatActivity {
      */
     private void displayDatabaseInfo() {
 
-        // Create and/or open a database to read from it
-        SQLiteDatabase db = mDbHelper.getReadableDatabase();
-
         // Define projection to specify which columns we want to retrieve from db
         String[] projection = {
                 PetEntry._ID,
@@ -83,16 +74,12 @@ public class CatalogActivity extends AppCompatActivity {
                 PetEntry.COLUMN_PET_WEIGHT
         };
 
-        // Perform a query in the database
-        Cursor cursor = db.query(
-                PetEntry.TABLE_NAME,    // Table to query
-                projection,             // columns to return (projection)
-                null,                   // columns for WHERE clause
-                null,                   // values for WHERE clause
-                null,                   // don't group the rows
-                null,                   // don't filter by row groups
-                null                    // sort order
-        );
+        // Perform a query on the provider using ContentResolver.
+        // Use the {@link PetEntry#CONTENT_URI} to access the pet data.
+        Cursor cursor = getContentResolver().query(PetEntry.CONTENT_URI, projection, null, null, null);
+        if (cursor == null) {
+            return;
+        }
 
         TextView displayView = (TextView) findViewById(R.id.text_view_pet);
 
@@ -129,11 +116,26 @@ public class CatalogActivity extends AppCompatActivity {
                         currentGender + " - " +
                         currentWeight);
             }
+
         } finally {
             // Always close the cursor when you're done reading from it. This releases all its
             // resources and makes it invalid.
             cursor.close();
         }
+    }
+
+    private void insertPet() {
+
+        ContentValues values = new ContentValues();
+
+        values.put(PetEntry.COLUMN_PET_NAME, "Toto");
+        values.put(PetEntry.COLUMN_PET_BREED, "Terrier");
+        values.put(PetEntry.COLUMN_PET_GENDER, PetEntry.GENDER_MALE);
+        values.put(PetEntry.COLUMN_PET_WEIGHT, 7);
+
+        Uri newPetEntry = getContentResolver().insert(PetEntry.CONTENT_URI, values);
+
+        Log.v(LOG_TAG, getString(R.string.log_new_row_id) + newPetEntry);
     }
 
     @Override
@@ -159,20 +161,5 @@ public class CatalogActivity extends AppCompatActivity {
                 return true;
         }
         return super.onOptionsItemSelected(item);
-    }
-
-    private void insertPet() {
-        SQLiteDatabase db = mDbHelper.getWritableDatabase();
-
-        ContentValues values = new ContentValues();
-
-        values.put(PetEntry.COLUMN_PET_NAME, "Toto");
-        values.put(PetEntry.COLUMN_PET_BREED, "Terrier");
-        values.put(PetEntry.COLUMN_PET_GENDER, PetEntry.GENDER_MALE);
-        values.put(PetEntry.COLUMN_PET_WEIGHT, 7);
-
-        long newRowId = db.insert(PetEntry.TABLE_NAME, null, values);
-
-        Log.v(LOG_TAG, "New row ID " + newRowId);
     }
 }
