@@ -104,4 +104,7 @@
     <!-- Toast message in catalog when all pets have failed to be deleted [CHAR LIMIT=NONE] -->
     <string name="catalog_delete_all_pets_failed">Error with deleting all pets</string>
     <string name="delete_all_dialog_msg">Delete all pet entries?</string>
+
+    <!-- Label for the pet's breed if the breed is unknown [CHAR LIMIT=20] -->
+    <string name="unknown_breed">Unknown breed</string>
 </resources>
