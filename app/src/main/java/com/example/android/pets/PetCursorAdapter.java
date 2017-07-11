@@ -11,9 +11,9 @@ import android.widget.TextView;
 
 import com.example.android.pets.data.PetContract.PetEntry;
 
-/**
- * Custom CursorAdapter class to fill our pets list
- * Created by Jens Greiner on 09.07.17.
+/*
+  Custom CursorAdapter class to fill our pets list
+  Created by Jens Greiner on 09.07.17.
  */
 
 /**
