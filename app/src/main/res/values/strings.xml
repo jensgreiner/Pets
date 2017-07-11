@@ -97,4 +97,11 @@
 
     <!-- Dialog button text for the option to cancel deletion of the current pet [CHAR LIMIT=20] -->
     <string name="cancel">Cancel</string>
+
+    <!-- Toast message in catalog when all pets were successfully deleted [CHAR LIMIT=NONE] -->
+    <string name="catalog_delete_all_pets_successful">All pets deleted</string>
+
+    <!-- Toast message in catalog when all pets have failed to be deleted [CHAR LIMIT=NONE] -->
+    <string name="catalog_delete_all_pets_failed">Error with deleting all pets</string>
+    <string name="delete_all_dialog_msg">Delete all pet entries?</string>
 </resources>
