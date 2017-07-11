@@ -16,7 +16,6 @@
 package com.example.android.pets;
 
 import android.app.LoaderManager;
-import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.CursorLoader;
 import android.content.Loader;
@@ -37,6 +36,8 @@ import android.widget.Toast;
 
 import com.example.android.pets.data.PetContract;
 import com.example.android.pets.data.PetContract.PetEntry;
+
+import static android.text.TextUtils.isEmpty;
 
 /**
  * Allows user to create a new pet or edit an existing one.
@@ -67,21 +68,28 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
      */
     private int mGender = 0;
 
+    /**
+     * Content URI for the existing pet (null if it's a new pet)
+     */
+    private Uri mCurrentPetUri;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_editor);
 
         // Check whether this is an edit call or and add call
-        Uri itemUri = getIntent().getData();
-        if (itemUri == null) {
+        mCurrentPetUri = getIntent().getData();
+        if (mCurrentPetUri == null) {
+            // This is a new pet, so change the app bar to say "Add a Pet"
             setTitle(R.string.editor_activity_title_new_pet);
         } else {
+            // Otherwise this is an existing pet, so change app bar to say "Edit Pet"
             setTitle(R.string.editor_activity_title_edit_pet);
-            Bundle args = new Bundle();
-            long itemId = ContentUris.parseId(itemUri);
-            args.putLong(ITEM_ID, itemId);
-            getLoaderManager().initLoader(EXISTING_PET_LOADER, args, this);
+
+            // Initialize a loader to read the pet data from the database
+            // and display the current values in the editor
+            getLoaderManager().initLoader(EXISTING_PET_LOADER, null, this);
         }
 
         // Find all relevant views that we will need to read user input from
@@ -113,7 +121,7 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 String selection = (String) parent.getItemAtPosition(position);
-                if (!TextUtils.isEmpty(selection)) {
+                if (!isEmpty(selection)) {
                     if (selection.equals(getString(R.string.gender_male))) {
                         mGender = PetContract.PetEntry.GENDER_MALE; // Male
                     } else if (selection.equals(getString(R.string.gender_female))) {
@@ -132,33 +140,59 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         });
     }
 
-    private void insertPet() {
+    private void savePet() {
 
         // Read from input fields
         // Use trim to eliminate leading or trailing white space
+
+        String nameString = mNameEditText.getText().toString().trim();
+        String breedString = mBreedEditText.getText().toString().trim();
+        String weightString = mWeightEditText.getText().toString().trim();
+
+        if (mCurrentPetUri == null &&
+                TextUtils.isEmpty(nameString) && TextUtils.isEmpty(breedString) &&
+                TextUtils.isEmpty(weightString) && mGender == PetEntry.GENDER_UNKNOWN) {
+            return;
+        }
+
         // Create a ContentValues object where column names are the keys,
         // and pet attributes from the editor are the values.
         ContentValues values = new ContentValues();
-        values.put(PetEntry.COLUMN_PET_NAME, mNameEditText.getText().toString().trim());
-        values.put(PetEntry.COLUMN_PET_BREED, mBreedEditText.getText().toString().trim());
+        values.put(PetEntry.COLUMN_PET_NAME, nameString);
+        values.put(PetEntry.COLUMN_PET_BREED, breedString);
         values.put(PetEntry.COLUMN_PET_GENDER, mGender);
-        int weight;
-        try {
-            weight = Integer.parseInt(mWeightEditText.getText().toString().trim());
-        } catch (NumberFormatException ne) {
-            weight = 0;
+        int weight = 0;
+        if (!TextUtils.isEmpty(weightString)) {
+            weight = Integer.parseInt(weightString);
         }
+
         values.put(PetEntry.COLUMN_PET_WEIGHT, weight);
 
-        // Insert a new pet into the provider, returning the content URI for the new pet.
-        Uri newPetEntry = getContentResolver().insert(PetEntry.CONTENT_URI, values);
+        if (mCurrentPetUri == null) {
+            // Insert a new pet into the provider, returning the content URI for the new pet.
+            Uri newPetEntry = getContentResolver().insert(PetEntry.CONTENT_URI, values);
 
-        // Show a toast message depending on whether or not the insertion was successful
-        if (newPetEntry == null) {
-            Toast.makeText(this, R.string.toast_error_pet_saved, Toast.LENGTH_LONG).show();
+            // Show a toast message depending on whether or not the insertion was successful
+            if (newPetEntry == null) {
+                Toast.makeText(this, R.string.toast_error_pet_saved, Toast.LENGTH_LONG).show();
+            } else {
+                Toast.makeText(this, R.string.toast_pet_saved, Toast.LENGTH_SHORT).show();
+            }
         } else {
-            Toast.makeText(this, R.string.toast_pet_Saved, Toast.LENGTH_SHORT).show();
+            int rowsUpdated = getContentResolver().update(
+                    mCurrentPetUri,         // Uri of current pet
+                    values,                 // values to be updated
+                    null,                   // no selection clause
+                    null                    // no selection arguments
+            );
+
+            if (rowsUpdated != 0) {
+                Toast.makeText(this, R.string.toast_pet_updated, Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, R.string.toast_error_pet_updated, Toast.LENGTH_LONG).show();
+            }
         }
+
     }
 
     @Override
@@ -176,7 +210,7 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
             // Respond to a click on the "Save" menu option
             case R.id.action_save:
                 // Save pet to the database
-                insertPet();
+                savePet();
                 // Exit activity
                 finish();
                 return true;
@@ -195,10 +229,6 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
 
     @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
-        // Retrieve itemId from args
-        long itemId = args.getLong(ITEM_ID);
-        // Create URI to quest the items data from database
-        Uri itemUri = ContentUris.withAppendedId(PetEntry.CONTENT_URI, itemId);
 
         // Define projection to specify which columns we want to retrieve from db
         String[] projection = {
@@ -211,7 +241,7 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
 
         // This loader will execute the ContentProvider's query method on a background thread
         return new CursorLoader(this,   // Parent activity context
-                itemUri,   // Provider content URI to query
+                mCurrentPetUri,         // Provider content URI to query
                 projection,             // Columns to include in the resulting cursor
                 null,                   // No selection clause
                 null,                   // No selection arguments
